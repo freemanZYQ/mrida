@@ -1,0 +1,1 @@
+sed -i 's/\"_frida_\"/\"_agdata_\"/g' releng/devkit.py

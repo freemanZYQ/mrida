@@ -1,0 +1,43 @@
+name: strong-frida macOS build
+
+on:
+  push:
+    paths:
+    - VERSION_
+
+jobs:
+  macos_build:
+    runs-on: macOS-latest
+
+    steps:
+    - uses: actions/checkout@v2.1.0
+
+    - uses: actions/setup-node@v1.4.2
+      with:
+        node-version: '12'
+
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Set up sign cert
+      run: |
+        sudo security add-trusted-cert -d -k /Library/Keychains/System.keychain -r trustRoot ./frida.cer
+        security add-trusted-cert -d -k ~/Library/Keychains/login.keychain -r trustRoot ./frida.cer
+        sudo killall taskgated
+        security find-certificate -p -c frida-cert | openssl x509 -checkend 0
+        security find-identity -p codesigning
+
+    - name: build frida for macOS
+      run: |
+        git clone --recurse-submodules https://github.com/frida/frida
+        cd frida
+        export MACOS_CERTID=frida-cert
+        export IOS_CERTID=frida-cert
+        make core-macos-thin
+        make gum-macos-thin
+        make gumjs-macos-thin
+        make core-ios-thin
+        make gum-ios-thin
+        make gumjs-ios-thin

@@ -1,0 +1,41 @@
+name: strong-frida build
+
+on:
+  push:
+    paths:
+    - VERSION_
+
+jobs:
+  windows_build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2.1.0
+
+    - uses: actions/setup-node@v1.4.2
+      with:
+        node-version: '12'
+
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Setup MSBuild
+      id: setup_msbuild
+      uses: microsoft/setup-msbuild@v1.0.0
+
+    - name: echo msbuild path
+      run: |
+        echo "${{ steps.setup_msbuild.outputs.msbuildPath }}"
+        msbuild -version
+
+    - name: build frida for Windows
+      run: |
+        Set-ExecutionPolicy -Scope Process -ExecutionPolicy Unrestricted
+        git clone --recurse-submodules https://github.com/frida/frida
+        cd frida
+        pwsh .\releng\stage-python.ps1
+        New-Item build\tmp-windows -ItemType Directory -ea 0
+        python .\releng\generate-version-header.py build\tmp-windows\frida-version.h
+        msbuild frida.sln /p:Configuration=Release /p:Platform=x64
